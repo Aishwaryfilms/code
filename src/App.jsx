@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from './supabaseClient';
+import merchPreview from './assets/merch-preview.jpg';
 
 const RED = "#e02020";
 const RED_DARK = "#a00000";
@@ -436,13 +437,43 @@ const style = `
 
   /* SHOP */
   .coming-soon-wrap {
-    margin-top: 2.5rem;
-    border-radius: 24px; padding: 5rem 3rem;
+    margin-top: 3.5rem;
+    border-radius: 24px;
     background: rgba(255,255,255,0.03);
     border: 1px dashed rgba(200,0,0,0.3);
     backdrop-filter: blur(18px);
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    align-items: stretch;
+  }
+  @media (max-width: 900px) {
+    .coming-soon-wrap { grid-template-columns: 1fr; }
+  }
+  .cs-img-box {
+    border-right: 1px dashed rgba(200,0,0,0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  @media (max-width: 900px) {
+    .cs-img-box { border-right: none; border-bottom: 1px dashed rgba(200,0,0,0.3); }
+  }
+  .cs-img-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: saturate(1.1) contrast(1.1);
+    transition: transform 0.5s ease;
+  }
+  .cs-img-box img:hover {
+    transform: scale(1.05);
+  }
+  .cs-content {
+    padding: 5rem 3rem;
     text-align: center;
     display: flex; flex-direction: column; align-items: center; gap: 1.2rem;
+    justify-content: center;
   }
   .cs-icon {
     width: 72px; height: 72px; border-radius: 50%;
@@ -1323,12 +1354,17 @@ export default function YouEsports() {
         <div className="sec-label">THE ARMORY</div>
         <h2 className="sec-h2">MERCH <span className="red">DROPS</span></h2>
         <div className="coming-soon-wrap">
-          <div className="cs-icon">🛡️</div>
-          <div className="cs-title">COMING SOON</div>
-          <p className="cs-sub">
-            The armory is being forged. Exclusive You eSports jerseys, streetwear drops, and limited-edition gear are on their way. Stay locked in.
-          </p>
-          <div className="cs-badge">DROP DATE · TO BE ANNOUNCED</div>
+          <div className="cs-img-box">
+            <img src={merchPreview} alt="You eSports Jersey First Look" />
+          </div>
+          <div className="cs-content">
+            <div className="cs-icon">🛡️</div>
+            <div className="cs-title">COMING SOON</div>
+            <p className="cs-sub">
+              The armory is being forged. Exclusive You eSports jerseys, streetwear drops, and limited-edition gear are on their way. Stay locked in.
+            </p>
+            <div className="cs-badge">DROP DATE · TO BE ANNOUNCED</div>
+          </div>
         </div>
       </section>
 
