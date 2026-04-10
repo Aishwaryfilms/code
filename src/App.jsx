@@ -862,6 +862,45 @@ export default function YouEsports() {
   const [activeGame, setActiveGame] = useState("BGMI");
   const [subject, setSubject] = useState("");
 
+  // Contact form state
+  const [formName, setFormName] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formPhone, setFormPhone] = useState("");
+  const [formMessage, setFormMessage] = useState("");
+  const [formStatus, setFormStatus] = useState(""); // "", "sending", "sent", "error"
+
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    setFormStatus("sending");
+    try {
+      const res = await fetch("https://formsubmit.co/ajax/contact@youesports.org", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({
+          name: formName,
+          email: formEmail,
+          phone: formPhone,
+          subject: subject || "General Inquiry",
+          department: depts[activeDept]?.title || "GENERAL",
+          message: formMessage,
+          _subject: `[YOU eSports] ${subject || depts[activeDept]?.title || "New Inquiry"}`,
+          _template: "table",
+        }),
+      });
+      if (res.ok) {
+        setFormStatus("sent");
+        setFormName(""); setFormEmail(""); setFormPhone(""); setFormMessage(""); setSubject("");
+        setTimeout(() => setFormStatus(""), 5000);
+      } else {
+        setFormStatus("error");
+        setTimeout(() => setFormStatus(""), 4000);
+      }
+    } catch {
+      setFormStatus("error");
+      setTimeout(() => setFormStatus(""), 4000);
+    }
+  };
+
   // Admin state
   const [adminOpen, setAdminOpen] = useState(false);
   const [adminAuthed, setAdminAuthed] = useState(false);
@@ -1362,21 +1401,35 @@ export default function YouEsports() {
             </div>
           </div>
 
-          <div className="form-grid">
+          <form className="form-grid" onSubmit={handleContactSubmit}>
             <div className="form-row">
-              <input className="finput" type="text" placeholder="Your name" />
-              <input className="finput" type="email" placeholder="you@example.com" />
+              <input className="finput" type="text" placeholder="Your name" required value={formName} onChange={e => setFormName(e.target.value)} />
+              <input className="finput" type="email" placeholder="you@example.com" required value={formEmail} onChange={e => setFormEmail(e.target.value)} />
             </div>
             <div className="form-row">
-              <input className="finput" type="tel" placeholder="+91 00000 00000" />
+              <input className="finput" type="tel" placeholder="+91 00000 00000" value={formPhone} onChange={e => setFormPhone(e.target.value)} />
               <input className="finput" type="text" placeholder="Brief subject line" value={subject} onChange={e => setSubject(e.target.value)} />
             </div>
-            <textarea className="finput" placeholder="Tell us about your inquiry in detail..." />
-            <button className="send-btn">→ SEND MESSAGE</button>
-            <p className="form-note">
-              By submitting this form, you agree that we may store and process your data to respond to your inquiry.
-            </p>
-          </div>
+            <textarea className="finput" placeholder="Tell us about your inquiry in detail..." required value={formMessage} onChange={e => setFormMessage(e.target.value)} />
+            <button className="send-btn" type="submit" disabled={formStatus === "sending"}>
+              {formStatus === "sending" ? "⏳ SENDING..." : formStatus === "sent" ? "✓ MESSAGE SENT!" : "→ SEND MESSAGE"}
+            </button>
+            {formStatus === "sent" && (
+              <p className="form-note" style={{ color: "#00e676" }}>
+                ✓ Your message has been sent successfully! We'll get back to you within 24 hours.
+              </p>
+            )}
+            {formStatus === "error" && (
+              <p className="form-note" style={{ color: "#ff5555" }}>
+                ⚠ Something went wrong. Please try again or email us directly at contact@youesports.org
+              </p>
+            )}
+            {!formStatus && (
+              <p className="form-note">
+                By submitting this form, you agree that we may store and process your data to respond to your inquiry.
+              </p>
+            )}
+          </form>
         </div>
       </section>
 
