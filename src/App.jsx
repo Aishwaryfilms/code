@@ -126,6 +126,49 @@ const style = `
   .nav-links a:hover, .nav-links a.active { color: #fff; }
   .nav-links a.active { border-bottom: 1.5px solid var(--red); }
   .nav-right { display: flex; gap: 8px; align-items: center; }
+  .hamburger {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .hamburger .bar {
+    display:block;
+    width:18px;
+    height:2px;
+    background:#fff;
+    margin:3px 0;
+    transition: transform 0.25s ease, opacity 0.2s ease;
+  }
+  .hamburger.is-active .bar:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  .hamburger.is-active .bar:nth-child(2) { opacity: 0; }
+  .hamburger.is-active .bar:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+  .mobile-menu {
+    display: none;
+    position: fixed;
+    inset: 62px 0 0 0;
+    z-index: 300;
+    background: rgba(7,7,7,0.96);
+    backdrop-filter: blur(10px);
+    padding: 2rem 1.5rem;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .mobile-menu.open {
+    display: block;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .mobile-menu ul { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:12px; }
+  .mobile-menu a { font-family: 'Space Mono', monospace; font-size: 16px; color: #fff; text-decoration:none; padding: 12px 8px; border-radius: 8px; display:block; }
+  .mobile-menu a.active { color: var(--red); background: rgba(200,0,0,0.06); }
 
   /* HERO */
   .hero {
@@ -638,6 +681,7 @@ const style = `
   @media (max-width: 900px) {
     .nav { padding: 0 1.5rem; }
     .nav-links { display: none; }
+    .hamburger { display: flex; }
     section { padding: 4rem 1.5rem; }
     .about-inner, .contact-inner { grid-template-columns: 1fr; gap: 2rem; padding: 2rem; }
     footer { grid-template-columns: 1fr 1fr; padding: 2rem 1.5rem; }
@@ -970,6 +1014,21 @@ export default function YouEsports() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Mobile menu state + keyboard/resize handlers
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") setMenuOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => { if (window.innerWidth > 900 && menuOpen) setMenuOpen(false); };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [menuOpen]);
+
   /* ── Admin auth via Supabase Auth ── */
   const handleAdminLogin = async () => {
     setAdminLoading(true); setAdminErr("");
@@ -1112,14 +1171,36 @@ export default function YouEsports() {
         <ul className="nav-links">
           {["home", "about", "roster", "creators", "contact"].map(s => (
             <li key={s}>
-              <a href={`#${s}`} className={activeNav === s ? "active" : ""}>
+              <a href={`#${s}`} className={activeNav === s ? "active" : ""} onClick={() => setMenuOpen(false)}>
                 {s === "creators" ? "CREATORS" : s.toUpperCase()}
               </a>
             </li>
           ))}
         </ul>
-        <div className="nav-right" />
+        <div className="nav-right">
+          <button
+            className={`hamburger ${menuOpen ? "is-active" : ""}`}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(v => !v)}
+          >
+            <span className="bar" />
+            <span className="bar" />
+            <span className="bar" />
+          </button>
+        </div>
       </nav>
+      <div className={`mobile-menu ${menuOpen ? "open" : ""}`} onClick={e => { if (e.target === e.currentTarget) setMenuOpen(false); }}>
+        <ul>
+          {["home", "about", "roster", "creators", "contact"].map(s => (
+            <li key={s}>
+              <a href={`#${s}`} className={activeNav === s ? "active" : ""} onClick={() => setMenuOpen(false)}>
+                {s === "creators" ? "CREATORS" : s.toUpperCase()}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
 
       {/* ADMIN OVERLAY */}
       {adminOpen && (
