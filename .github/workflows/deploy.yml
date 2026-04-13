@@ -15,6 +15,8 @@ jobs:
         working-directory: you-frontend
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Use Node.js
         uses: actions/setup-node@v4
