@@ -528,6 +528,17 @@ const style = `
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1.6rem;
   }
+  .status-card {
+    grid-column: 1 / -1;
+    border-radius: 12px;
+    border: 1px dashed rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.03);
+    padding: 14px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    color: rgba(255,255,255,0.56);
+  }
 
   /* Cinematic player / creator card */
   .player-card {
@@ -860,19 +871,29 @@ const style = `
   }
   .footer-bottom .accent { color: var(--red); }
   .admin-open-btn {
-    background: none;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 6px;
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 420;
+    width: 40px;
+    height: 40px;
+    background: rgba(0,0,0,0.78);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 50%;
     cursor: pointer;
-    color: rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.7);
     font-size: 13px;
-    padding: 4px 9px;
+    padding: 0;
     line-height: 1;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
     transition: all 0.2s;
   }
   .admin-open-btn:hover {
-    border-color: rgba(200,0,0,0.4);
-    color: rgba(200,0,0,0.7);
+    transform: translateY(-1px);
+    border-color: rgba(200,0,0,0.55);
+    color: rgba(255,255,255,0.95);
+    background: rgba(200,0,0,0.2);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1433,6 +1454,20 @@ export default function YouEsports() {
     );
     if (!targets.length) return;
 
+    const pendingTargets = [];
+    targets.forEach((target) => {
+      const rect = target.getBoundingClientRect();
+      const isInView = rect.top < window.innerHeight * 0.96 && rect.bottom > window.innerHeight * 0.04;
+      if (isInView) {
+        target.classList.add("visible");
+        if (target.classList.contains("reveal")) {
+          target.querySelectorAll(".wipe, .card").forEach((node) => node.classList.add("visible"));
+        }
+      } else {
+        pendingTargets.push(target);
+      }
+    });
+
     const cardGroups = new Map();
     targets.forEach((target) => {
       if (!target.classList.contains("card")) return;
@@ -1453,15 +1488,16 @@ export default function YouEsports() {
           if (!entry.isIntersecting) return;
           entry.target.classList.add("visible");
           if (entry.target.classList.contains("reveal")) {
-            entry.target.querySelectorAll(".wipe").forEach((node) => node.classList.add("visible"));
+            entry.target.querySelectorAll(".wipe, .card").forEach((node) => node.classList.add("visible"));
           }
           observer.unobserve(entry.target);
         });
       },
-      { threshold: 0.1, rootMargin: "0px 0px -6% 0px" }
+      { threshold: 0.04, rootMargin: "0px 0px -2% 0px" }
     );
 
-    targets.forEach((target) => observer.observe(target));
+    if (!pendingTargets.length) return;
+    pendingTargets.forEach((target) => observer.observe(target));
 
     return () => observer.disconnect();
   }, [roster.BGMI.length, roster.Valorant.length, creators.length]);
@@ -1472,7 +1508,7 @@ export default function YouEsports() {
 
   /*  Shared card renderer  */
   const renderCard = (item, label, linkText) => (
-    <div key={item.id} className={`player-card card ${item.featured ? "featured" : "standard"}`}>
+    <div key={item.id} className={`player-card ${item.featured ? "featured" : "standard"}`}>
       <div className="pc-img-area">
         {item.img
           ? <img src={item.img} alt={item.name} />
@@ -1626,6 +1662,10 @@ export default function YouEsports() {
                 {/* Creators tab */}
                 {adminTab === "CREATORS" && (
                   <>
+                    {dataLoading && <div className="admin-err" style={{ marginBottom: "10px" }}>Loading creators...</div>}
+                    {!dataLoading && creators.length === 0 && (
+                      <div className="admin-err" style={{ marginBottom: "10px" }}>No creators found yet. Add a creator slot below.</div>
+                    )}
                     {creators.map(c => (
                       <div key={c.id} className="admin-player-card">
                         <div className="admin-player-header">
@@ -1756,7 +1796,7 @@ export default function YouEsports() {
 
       <SectionDivider label="CREATORS" />
       {/* CONTENT CREATORS */}
-      <section id="creators" className="reveal">
+      <section id="creators">
         <div className="roster-header">
           <div>
             <div className="sec-label wipe">CONTENT CREATORS</div>
@@ -1769,7 +1809,12 @@ export default function YouEsports() {
         </div>
 
         <div className="roster-grid">
-          {creators.map(c => renderCard(c, c.platform, "VIEW CHANNEL"))}
+          {dataLoading
+            ? <div className="status-card">LOADING CREATORS...</div>
+            : creators.length > 0
+              ? creators.map(c => renderCard(c, c.platform, "VIEW CHANNEL"))
+              : <div className="status-card">NO CREATORS FOUND YET.</div>
+          }
         </div>
       </section>
 
