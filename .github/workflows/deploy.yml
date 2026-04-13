@@ -7,6 +7,9 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: you-frontend
     steps:
       - uses: actions/checkout@v4
 
@@ -20,12 +23,12 @@ jobs:
 
       - name: Build
         env:
-          VITE_BASE_PATH: /you/
-          VITE_ADMIN_API_URL: ${{ secrets.ADMIN_API_URL }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+          publish_dir: ./you-frontend/dist
