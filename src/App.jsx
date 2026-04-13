@@ -1282,27 +1282,40 @@ export default function YouEsports() {
   const updatePlayer = (game, id, field, value) =>
     setRoster(prev => ({ ...prev, [game]: prev[game].map(p => p.id === id ? { ...p, [field]: value } : p) }));
 
+  const getNextNum = (items) => {
+    const maxNum = (items || []).reduce((max, item) => {
+      const parsed = Number.parseInt(item?.num, 10);
+      return Number.isFinite(parsed) ? Math.max(max, parsed) : max;
+    }, 0);
+    return String(maxNum + 1).padStart(2, "0");
+  };
+
   const addPlayer = async (game) => {
     setAdminOpErr("");
-    const num = String(roster[game].length + 1).padStart(2, "0");
-    const { data, error } = await supabase.from('roster')
-      .insert({ game, num, name: "New Player", real_name: "Real Name", role: "ROLE" })
-      .select('id, num, name, real_name, role')
-      .single();
-    if (error) { setAdminOpErr("Add failed: " + error.message); return; }
-    if (data) {
-      setRoster(prev => ({ ...prev, [game]: [...prev[game], { id: data.id, num: data.num, name: data.name, real: data.real_name, role: data.role, featured: false, img: null }] }));
+    setAdminLoading(true);
+    const num = getNextNum(roster[game]);
+    const { error } = await supabase.from('roster')
+      .insert({ game, num, name: "New Player", real_name: "Real Name", role: "ROLE", featured: false, img: null });
+    if (error) {
+      setAdminLoading(false);
+      setAdminOpErr("Add failed: " + error.message);
+      return;
     }
+    await fetchData();
+    setAdminLoading(false);
   };
 
   const removePlayer = async (game, id) => {
     setAdminOpErr("");
+    setAdminLoading(true);
     const { error } = await supabase.from('roster').delete().eq('id', id);
-    if (error) { setAdminOpErr("Remove failed: " + error.message); return; }
-    setRoster(prev => ({
-      ...prev,
-      [game]: prev[game].filter(p => p.id !== id).map((p, i) => ({ ...p, num: String(i + 1).padStart(2, "0") }))
-    }));
+    if (error) {
+      setAdminLoading(false);
+      setAdminOpErr("Remove failed: " + error.message);
+      return;
+    }
+    await fetchData();
+    setAdminLoading(false);
   };
 
   /*  Creator helpers (Supabase)  */
@@ -1311,22 +1324,30 @@ export default function YouEsports() {
 
   const addCreator = async () => {
     setAdminOpErr("");
-    const num = String(creators.length + 1).padStart(2, "0");
-    const { data, error } = await supabase.from('creators')
-      .insert({ num, name: "New Creator", handle: "@handle", platform: "YouTube", type: "CONTENT CREATOR" })
-      .select('id, num, name, handle, platform, type')
-      .single();
-    if (error) { setAdminOpErr("Add failed: " + error.message); return; }
-    if (data) {
-      setCreators(prev => [...prev, { id: data.id, num: data.num, name: data.name, handle: data.handle, platform: data.platform, type: data.type, featured: false, img: null, link: "" }]);
+    setAdminLoading(true);
+    const num = getNextNum(creators);
+    const { error } = await supabase.from('creators')
+      .insert({ num, name: "New Creator", handle: "@handle", platform: "YouTube", type: "CONTENT CREATOR", featured: false, img: null, link: null });
+    if (error) {
+      setAdminLoading(false);
+      setAdminOpErr("Add failed: " + error.message);
+      return;
     }
+    await fetchData();
+    setAdminLoading(false);
   };
 
   const removeCreator = async (id) => {
     setAdminOpErr("");
+    setAdminLoading(true);
     const { error } = await supabase.from('creators').delete().eq('id', id);
-    if (error) { setAdminOpErr("Remove failed: " + error.message); return; }
-    setCreators(prev => prev.filter(c => c.id !== id).map((c, i) => ({ ...c, num: String(i + 1).padStart(2, "0") })));
+    if (error) {
+      setAdminLoading(false);
+      setAdminOpErr("Remove failed: " + error.message);
+      return;
+    }
+    await fetchData();
+    setAdminLoading(false);
   };
 
   const handleAdminSave = async () => {
@@ -1590,7 +1611,7 @@ export default function YouEsports() {
       {adminOpen && (
         <div className="admin-overlay" onClick={e => { if (e.target === e.currentTarget) closeAdmin(); }}>
           <div className="admin-panel">
-            <button className="admin-close" onClick={closeAdmin}>X</button>
+            <button type="button" className="admin-close" onClick={closeAdmin}>X</button>
             <h3>ADMIN PANEL</h3>
             <div className="panel-sub">ROSTER & CREATORS MANAGEMENT - YOUESPORTS</div>
 
@@ -1612,7 +1633,7 @@ export default function YouEsports() {
                   onKeyDown={e => e.key === "Enter" && handleAdminLogin()}
                 />
                 {adminErr && <div className="admin-err">{adminErr}</div>}
-                <button onClick={handleAdminLogin} disabled={adminLoading}>
+                <button type="button" onClick={handleAdminLogin} disabled={adminLoading}>
                   {adminLoading ? "SIGNING IN..." : "UNLOCK"}
                 </button>
               </div>
@@ -1621,9 +1642,10 @@ export default function YouEsports() {
                 {/* Tabs */}
                 <div className="admin-tabs">
                   {["BGMI", "Valorant", "CREATORS"].map(t => (
-                    <button key={t} className={`admin-tab ${adminTab === t ? "active" : ""}`} onClick={() => setAdminTab(t)}>{t}</button>
+                    <button type="button" key={t} className={`admin-tab ${adminTab === t ? "active" : ""}`} onClick={() => setAdminTab(t)}>{t}</button>
                   ))}
                 </div>
+                {adminOpErr && <div className="admin-err" style={{ marginBottom: "10px" }}>ERROR: {adminOpErr}</div>}
 
                 {/* Roster tabs */}
                 {(adminTab === "BGMI" || adminTab === "Valorant") && (
@@ -1632,7 +1654,7 @@ export default function YouEsports() {
                       <div key={p.id} className="admin-player-card">
                         <div className="admin-player-header">
                           <span>PLAYER #{p.num} - {p.name}</span>
-                          <button className="admin-remove-btn" onClick={() => removePlayer(adminTab, p.id)}>REMOVE</button>
+                          <button type="button" className="admin-remove-btn" onClick={() => removePlayer(adminTab, p.id)} disabled={adminLoading}>REMOVE</button>
                         </div>
                         <ImgUploadBlock
                           img={p.img}
@@ -1655,7 +1677,7 @@ export default function YouEsports() {
                         </div>
                       </div>
                     ))}
-                    <button className="admin-add-btn" onClick={() => addPlayer(adminTab)}>+ ADD PLAYER SLOT</button>
+                    <button type="button" className="admin-add-btn" onClick={() => addPlayer(adminTab)} disabled={adminLoading}>+ ADD PLAYER SLOT</button>
                   </>
                 )}
 
@@ -1670,7 +1692,7 @@ export default function YouEsports() {
                       <div key={c.id} className="admin-player-card">
                         <div className="admin-player-header">
                           <span>CREATOR #{c.num} - {c.name}</span>
-                          <button className="admin-remove-btn" onClick={() => removeCreator(c.id)}>REMOVE</button>
+                          <button type="button" className="admin-remove-btn" onClick={() => removeCreator(c.id)} disabled={adminLoading}>REMOVE</button>
                         </div>
                         <ImgUploadBlock
                           img={c.img}
@@ -1707,15 +1729,14 @@ export default function YouEsports() {
                         </div>
                       </div>
                     ))}
-                    <button className="admin-add-btn" onClick={addCreator}>+ ADD CREATOR SLOT</button>
+                    <button type="button" className="admin-add-btn" onClick={addCreator} disabled={adminLoading}>+ ADD CREATOR SLOT</button>
                   </>
                 )}
 
-                <button className="admin-save-btn" onClick={handleAdminSave} disabled={adminLoading}>
+                <button type="button" className="admin-save-btn" onClick={handleAdminSave} disabled={adminLoading}>
                   {adminLoading ? "SAVING..." : "SAVE CHANGES"}
                 </button>
                 {adminSaved && <div className="save-success">CHANGES APPLIED SUCCESSFULLY</div>}
-                {adminOpErr && <div className="admin-err" style={{ marginTop: "12px", textAlign: "center" }}>ERROR: {adminOpErr}</div>}
               </>
             )}
           </div>
@@ -1966,6 +1987,7 @@ export default function YouEsports() {
         <span>Copyright 2025 <span className="accent">You eSports</span>. All rights reserved.</span>
         <span className="accent">THE PINNACLE OF ESPORTS</span>
         <button
+          type="button"
           className="admin-open-btn"
           onClick={() => setAdminOpen(true)}
           title="Admin"
