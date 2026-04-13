@@ -1,0 +1,9 @@
+{
+  "name": "coding-root",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix you-frontend run dev",
+    "build": "npm --prefix you-frontend run build",
+    "preview": "npm --prefix you-frontend run preview"
+  }
+}
